@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CICIDS Dashboard</title>
+</head>
+<body>
+    <h1>CICIDS Prediction Dashboard</h1>
+    <form method="post" action="/predict">
+        <label>Feature values (comma-separated):</label><br>
+        <textarea name="feature_values" rows="10" cols="100"></textarea><br><br>
+        <input type="submit" value="Predict">
+    </form>
+    <p>{{ message }}</p>
+</body>
+</html>
