@@ -1,47 +1,36 @@
-import joblib
 import pandas as pd
+import joblib
 from live_feature_extractor import capture_and_extract_features
 
-# === Load model ===
-model = joblib.load("cicids_rf_model.joblib")
+# === Load trained model and label encoder ===
+clf = joblib.load("cicids_rf_model.joblib")
+le = joblib.load("label_encoder.joblib")
 
-# === Get model's expected feature names ===
-model_columns = model.feature_names_in_
-
-# === Capture and extract live features ===
+# === Capture live features ===
+print("[*] Starting live capture for 30 seconds or 500 packets...")
 live_df = capture_and_extract_features(duration=30, max_packets=500)
 
-if live_df.empty:
-    print("No live flows captured.")
-else:
-    # Strip spaces from live_df columns first
-    live_df.columns = [c.strip() for c in live_df.columns]
+# Save extracted features
+live_df.to_csv("live_flows_features.csv", index=False)
+print("[+] Features saved to live_flows_features.csv")
 
-    # Drop Label column if present
-    if "Label" in live_df.columns:
-        live_df = live_df.drop(columns=["Label"])
+# Keep only columns used for training
+expected_features = ["Total Fwd Packets", "Total Backward Packets", "Total Length of Fwd Packets"]
+live_df_features = live_df[expected_features]
 
-    # Rename columns to exactly match model feature names
-    # Match columns by ignoring spaces
-    col_map = {col.strip(): col for col in model_columns}
-    live_df = live_df.rename(columns=lambda x: col_map.get(x, x))
+# Predict
+predictions = clf.predict(live_df_features)
 
-    # Add missing columns
-    for col in model_columns:
-        if col not in live_df.columns:
-            live_df[col] = 0.0
+# Decode numeric predictions to labels
+decoded_predictions = le.inverse_transform(predictions)
 
-    # Ensure order matches model
-    live_df = live_df[model_columns]
+# Save predictions
+live_df["Prediction"] = decoded_predictions
+live_df.to_csv("live_predictions.csv", index=False)
+print("[+] Predictions saved to live_predictions.csv")
 
-    print("Columns BEFORE prediction:", live_df.columns.tolist())
+# Print summary
+summary = live_df["Prediction"].value_counts()
+print("[+] Example prediction summary:")
+print(summary)
 
-    # Predict
-    predictions = model.predict(live_df)
-    live_df["Prediction"] = predictions
-
-    # Save
-    live_df.to_csv("live_predictions.csv", index=False)
-    print("[+] Predictions saved to live_predictions.csv")
-    print("[+] Example prediction summary:")
-    print(live_df["Prediction"].value_counts())

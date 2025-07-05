@@ -1,70 +1,72 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Live Threat Dashboard</title>
+    <title>Live Predictions Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <meta http-equiv="refresh" content="300"> <!-- refresh page every 5 minutes as backup -->
     <style>
-        body { font-family: Arial, sans-serif; }
-        h1 { color: #333; }
-        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        #summary { margin-top: 20px; }
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { text-align: center; }
+        canvas { margin: 20px auto; display: block; }
     </style>
 </head>
 <body>
-    <h1>Home Network Threat Dashboard</h1>
-    <div id="summary"></div>
-    <table id="predictions-table">
-        <thead>
-            <tr id="table-header"></tr>
-        </thead>
-        <tbody id="table-body"></tbody>
-    </table>
+    <h1>Live Network Traffic Predictions</h1>
+
+    <canvas id="pieChart" width="400" height="400"></canvas>
+    <canvas id="barChart" width="400" height="400"></canvas>
 
     <script>
+        const pieCtx = document.getElementById('pieChart').getContext('2d');
+        const barCtx = document.getElementById('barChart').getContext('2d');
+
+        let pieChart = new Chart(pieCtx, {
+            type: 'pie',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Predictions',
+                    data: [],
+                    backgroundColor: ['#4caf50', '#f44336', '#2196f3', '#ff9800', '#9c27b0']
+                }]
+            }
+        });
+
+        let barChart = new Chart(barCtx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Count',
+                    data: [],
+                    backgroundColor: ['#4caf50', '#f44336', '#2196f3', '#ff9800', '#9c27b0']
+                }]
+            },
+            options: {
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+
         async function fetchData() {
-            const response = await fetch("/data");
+            const response = await fetch('/data');
             const data = await response.json();
 
-            if (data.error) {
-                document.getElementById("summary").innerText = "Error: " + data.error;
-                return;
-            }
+            const labels = Object.keys(data);
+            const values = Object.values(data);
 
-            let summaryHTML = "<strong>Summary:</strong><br>";
-            for (const [label, count] of Object.entries(data.summary)) {
-                summaryHTML += `${label}: ${count}<br>`;
-            }
-            document.getElementById("summary").innerHTML = summaryHTML;
+            pieChart.data.labels = labels;
+            pieChart.data.datasets[0].data = values;
+            pieChart.update();
 
-            const tableHeader = document.getElementById("table-header");
-            const tableBody = document.getElementById("table-body");
-
-            tableHeader.innerHTML = "";
-            tableBody.innerHTML = "";
-
-            if (data.rows.length > 0) {
-                const headers = Object.keys(data.rows[0]);
-                headers.forEach(col => {
-                    const th = document.createElement("th");
-                    th.innerText = col;
-                    tableHeader.appendChild(th);
-                });
-
-                data.rows.forEach(row => {
-                    const tr = document.createElement("tr");
-                    headers.forEach(col => {
-                        const td = document.createElement("td");
-                        td.innerText = row[col];
-                        tr.appendChild(td);
-                    });
-                    tableBody.appendChild(tr);
-                });
-            }
+            barChart.data.labels = labels;
+            barChart.data.datasets[0].data = values;
+            barChart.update();
         }
 
-        setInterval(fetchData, 5000);
         fetchData();
+        setInterval(fetchData, 5000); // update every 5 seconds
     </script>
 </body>
 </html>
