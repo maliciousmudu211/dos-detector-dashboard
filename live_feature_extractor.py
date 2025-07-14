@@ -2,7 +2,7 @@ import pyshark
 import pandas as pd
 import time
 
-def capture_and_extract_features(interface="wlp2s0", duration=30, max_packets=500):
+def capture_and_extract_features(interface="wlo1", duration=30, max_packets=500):
     print(f"[*] Starting live capture for {duration} seconds or {max_packets} packets...")
 
     # Capture packets
